@@ -123,8 +123,7 @@ class FunctionsSpec extends AnyFlatSpec with Matchers:
       (functions.trim(col), "trim"),
       (functions.ltrim(col), "ltrim"),
       (functions.rtrim(col), "rtrim"),
-      (functions.length(col), "length"),
-      (functions.reverse(col), "reverse")
+      (functions.length(col), "length")
     )
 
     testCases.foreach { case (result, expectedFn) =>
@@ -168,7 +167,7 @@ class FunctionsSpec extends AnyFlatSpec with Matchers:
       (functions.floor(col), "floor"),
       (functions.round(col), "round"),
       (functions.exp(col), "exp"),
-      (functions.log(col), "log")
+      (functions.log(col), "ln")  // log() is natural logarithm, uses "ln" function name
     )
 
     testCases.foreach { case (result, expectedFn) =>

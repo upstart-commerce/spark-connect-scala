@@ -296,7 +296,8 @@ final class Column private[sql] (private[sql] val expr: Expression):
       exprType = Expression.ExprType.SortOrder(
         Expression.SortOrder(
           child = Some(expr),
-          direction = Expression.SortOrder.SortDirection.SORT_DIRECTION_ASCENDING
+          direction = Expression.SortOrder.SortDirection.SORT_DIRECTION_ASCENDING,
+          nullOrdering = Expression.SortOrder.NullOrdering.SORT_NULLS_FIRST
         )
       )
     ))
@@ -309,7 +310,8 @@ final class Column private[sql] (private[sql] val expr: Expression):
       exprType = Expression.ExprType.SortOrder(
         Expression.SortOrder(
           child = Some(expr),
-          direction = Expression.SortOrder.SortDirection.SORT_DIRECTION_DESCENDING
+          direction = Expression.SortOrder.SortDirection.SORT_DIRECTION_DESCENDING,
+          nullOrdering = Expression.SortOrder.NullOrdering.SORT_NULLS_LAST
         )
       )
     ))
@@ -326,14 +328,14 @@ final class Column private[sql] (private[sql] val expr: Expression):
         Expression.SortOrder(
           child = Some(expr),
           direction = Expression.SortOrder.SortDirection.SORT_DIRECTION_ASCENDING,
-          nullOrdering = Expression.SortOrder.NullOrdering.SORT_NULLS_UNSPECIFIED
+          nullOrdering = Expression.SortOrder.NullOrdering.SORT_NULLS_FIRST
         )
       case _ =>
         // Default to ascending for all other expression types
         Expression.SortOrder(
           child = Some(expr),
           direction = Expression.SortOrder.SortDirection.SORT_DIRECTION_ASCENDING,
-          nullOrdering = Expression.SortOrder.NullOrdering.SORT_NULLS_UNSPECIFIED
+          nullOrdering = Expression.SortOrder.NullOrdering.SORT_NULLS_FIRST
         )
 
   // ============================================================================

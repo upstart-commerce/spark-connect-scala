@@ -18,6 +18,7 @@ class ArrowConverterSpec extends AnyFlatSpec with Matchers:
 
   "ArrowConverter.arrowBatchToRows" should "convert integer vector to rows" in {
     val allocator = new RootAllocator(Long.MaxValue)
+    var root: VectorSchemaRoot = null
     try
       val intVector = new IntVector("id", allocator)
       intVector.allocateNew(3)
@@ -26,7 +27,7 @@ class ArrowConverterSpec extends AnyFlatSpec with Matchers:
       intVector.set(2, 300)
       intVector.setValueCount(3)
 
-      val root = new VectorSchemaRoot(Seq(intVector.getField).asJava, Seq(intVector).asJava, 3)
+      root = new VectorSchemaRoot(Seq(intVector.getField).asJava, Seq(intVector).asJava, 3)
 
       val output = new ByteArrayOutputStream()
       val writer = new ArrowStreamWriter(root, null, output)
@@ -41,11 +42,13 @@ class ArrowConverterSpec extends AnyFlatSpec with Matchers:
       rows(1).getInt(0) shouldBe 200
       rows(2).getInt(0) shouldBe 300
     finally
+      if root != null then root.close()
       allocator.close()
   }
 
   "ArrowConverter.arrowBatchToRows" should "convert multiple column types" in {
     val allocator = new RootAllocator(Long.MaxValue)
+    var root: VectorSchemaRoot = null
     try
       // Create vectors for different types
       val intVector = new IntVector("id", allocator)
@@ -94,7 +97,7 @@ class ArrowConverterSpec extends AnyFlatSpec with Matchers:
         bitVector
       ).asJava
 
-      val root = new VectorSchemaRoot(fields, vectors, 2)
+      root = new VectorSchemaRoot(fields, vectors, 2)
 
       val output = new ByteArrayOutputStream()
       val writer = new ArrowStreamWriter(root, null, output)
@@ -120,11 +123,13 @@ class ArrowConverterSpec extends AnyFlatSpec with Matchers:
       rows(1).getString(3) shouldBe "Bob"
       rows(1).getBoolean(4) shouldBe false
     finally
+      if root != null then root.close()
       allocator.close()
   }
 
   "ArrowConverter.arrowBatchToRows" should "handle null values" in {
     val allocator = new RootAllocator(Long.MaxValue)
+    var root: VectorSchemaRoot = null
     try
       val intVector = new IntVector("nullable_id", allocator)
       intVector.allocateNew(3)
@@ -133,7 +138,7 @@ class ArrowConverterSpec extends AnyFlatSpec with Matchers:
       intVector.set(2, 300)
       intVector.setValueCount(3)
 
-      val root = new VectorSchemaRoot(Seq(intVector.getField).asJava, Seq(intVector).asJava, 3)
+      root = new VectorSchemaRoot(Seq(intVector.getField).asJava, Seq(intVector).asJava, 3)
 
       val output = new ByteArrayOutputStream()
       val writer = new ArrowStreamWriter(root, null, output)
@@ -148,11 +153,13 @@ class ArrowConverterSpec extends AnyFlatSpec with Matchers:
       rows(1).isNullAt(0) shouldBe true
       rows(2).getInt(0) shouldBe 300
     finally
+      if root != null then root.close()
       allocator.close()
   }
 
   "ArrowConverter.arrowBatchToRows" should "handle small integers" in {
     val allocator = new RootAllocator(Long.MaxValue)
+    var root: VectorSchemaRoot = null
     try
       val tinyIntVector = new TinyIntVector("byte_col", allocator)
       tinyIntVector.allocateNew(2)
@@ -169,7 +176,7 @@ class ArrowConverterSpec extends AnyFlatSpec with Matchers:
       val fields = Seq(tinyIntVector.getField, smallIntVector.getField).asJava
       val vectors = Seq[FieldVector](tinyIntVector, smallIntVector).asJava
 
-      val root = new VectorSchemaRoot(fields, vectors, 2)
+      root = new VectorSchemaRoot(fields, vectors, 2)
 
       val output = new ByteArrayOutputStream()
       val writer = new ArrowStreamWriter(root, null, output)
@@ -185,11 +192,13 @@ class ArrowConverterSpec extends AnyFlatSpec with Matchers:
       rows(1).getByte(0) shouldBe 20.toByte
       rows(1).getShort(1) shouldBe 2000.toShort
     finally
+      if root != null then root.close()
       allocator.close()
   }
 
   "ArrowConverter.arrowBatchToRows" should "handle float values" in {
     val allocator = new RootAllocator(Long.MaxValue)
+    var root: VectorSchemaRoot = null
     try
       val float4Vector = new Float4Vector("float_col", allocator)
       float4Vector.allocateNew(2)
@@ -197,7 +206,7 @@ class ArrowConverterSpec extends AnyFlatSpec with Matchers:
       float4Vector.set(1, 2.5f)
       float4Vector.setValueCount(2)
 
-      val root = new VectorSchemaRoot(Seq(float4Vector.getField).asJava, Seq(float4Vector).asJava, 2)
+      root = new VectorSchemaRoot(Seq(float4Vector.getField).asJava, Seq(float4Vector).asJava, 2)
 
       val output = new ByteArrayOutputStream()
       val writer = new ArrowStreamWriter(root, null, output)
@@ -211,11 +220,13 @@ class ArrowConverterSpec extends AnyFlatSpec with Matchers:
       rows(0).getFloat(0) shouldBe 1.5f
       rows(1).getFloat(0) shouldBe 2.5f
     finally
+      if root != null then root.close()
       allocator.close()
   }
 
   "ArrowConverter.arrowBatchToRows" should "handle timestamp values" in {
     val allocator = new RootAllocator(Long.MaxValue)
+    var root: VectorSchemaRoot = null
     try
       val timestampVector = new TimeStampMilliVector("timestamp_col", allocator)
       timestampVector.allocateNew(2)
@@ -223,7 +234,7 @@ class ArrowConverterSpec extends AnyFlatSpec with Matchers:
       timestampVector.set(1, 1640995200000L) // 2022-01-01 00:00:00 UTC
       timestampVector.setValueCount(2)
 
-      val root = new VectorSchemaRoot(Seq(timestampVector.getField).asJava, Seq(timestampVector).asJava, 2)
+      root = new VectorSchemaRoot(Seq(timestampVector.getField).asJava, Seq(timestampVector).asJava, 2)
 
       val output = new ByteArrayOutputStream()
       val writer = new ArrowStreamWriter(root, null, output)
@@ -237,11 +248,13 @@ class ArrowConverterSpec extends AnyFlatSpec with Matchers:
       rows(0).getTimestamp(0).getTime shouldBe 1609459200000L
       rows(1).getTimestamp(0).getTime shouldBe 1640995200000L
     finally
+      if root != null then root.close()
       allocator.close()
   }
 
   "ArrowConverter.arrowBatchToRows" should "handle date values" in {
     val allocator = new RootAllocator(Long.MaxValue)
+    var root: VectorSchemaRoot = null
     try
       val dateVector = new DateDayVector("date_col", allocator)
       dateVector.allocateNew(2)
@@ -249,7 +262,7 @@ class ArrowConverterSpec extends AnyFlatSpec with Matchers:
       dateVector.set(1, 18993)
       dateVector.setValueCount(2)
 
-      val root = new VectorSchemaRoot(Seq(dateVector.getField).asJava, Seq(dateVector).asJava, 2)
+      root = new VectorSchemaRoot(Seq(dateVector.getField).asJava, Seq(dateVector).asJava, 2)
 
       val output = new ByteArrayOutputStream()
       val writer = new ArrowStreamWriter(root, null, output)
@@ -263,5 +276,6 @@ class ArrowConverterSpec extends AnyFlatSpec with Matchers:
       rows(0).isNullAt(0) shouldBe false
       rows(1).isNullAt(0) shouldBe false
     finally
+      if root != null then root.close()
       allocator.close()
   }

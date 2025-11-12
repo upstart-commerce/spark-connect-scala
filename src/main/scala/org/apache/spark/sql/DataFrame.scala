@@ -132,7 +132,8 @@ final class DataFrame private (
       relType = Relation.RelType.Sort(
         Sort(
           input = Some(relation),
-          order = cols.map(_.toSortOrder).toSeq
+          order = cols.map(_.toSortOrder).toSeq,
+          isGlobal = Some(true)
         )
       )
     )

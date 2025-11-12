@@ -5,7 +5,8 @@
       "Bash(sbt compile:*)",
       "Bash(sbt clean compile:*)",
       "Bash(nc:*)",
-      "Bash(sbt:*)"
+      "Bash(sbt:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

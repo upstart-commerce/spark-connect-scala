@@ -18,7 +18,7 @@ class DataFrameSpec extends AnyFlatSpec with Matchers with MockitoSugar:
     val baseRelation = Relation(
       relType = Relation.RelType.Range(Range(start = Some(0L), end = 10L, step = 1L))
     )
-    val df = new DataFrame(mockSession, baseRelation)
+    val df = DataFrame(mockSession, baseRelation)
 
     val result = df.select(functions.col("id"))
 
@@ -37,7 +37,7 @@ class DataFrameSpec extends AnyFlatSpec with Matchers with MockitoSugar:
     val baseRelation = Relation(
       relType = Relation.RelType.Range(Range(start = Some(0L), end = 10L, step = 1L))
     )
-    val df = new DataFrame(mockSession, baseRelation)
+    val df = DataFrame(mockSession, baseRelation)
 
     val result = df.filter(functions.col("id") < 5)
 
@@ -56,7 +56,7 @@ class DataFrameSpec extends AnyFlatSpec with Matchers with MockitoSugar:
     val baseRelation = Relation(
       relType = Relation.RelType.Range(Range(start = Some(0L), end = 10L, step = 1L))
     )
-    val df = new DataFrame(mockSession, baseRelation)
+    val df = DataFrame(mockSession, baseRelation)
 
     val result = df.where(functions.col("id") > 3)
 
@@ -74,7 +74,7 @@ class DataFrameSpec extends AnyFlatSpec with Matchers with MockitoSugar:
     val baseRelation = Relation(
       relType = Relation.RelType.Range(Range(start = Some(0L), end = 10L, step = 1L))
     )
-    val df = new DataFrame(mockSession, baseRelation)
+    val df = DataFrame(mockSession, baseRelation)
 
     val result = df.where("id > 5")
 
@@ -92,7 +92,7 @@ class DataFrameSpec extends AnyFlatSpec with Matchers with MockitoSugar:
     val baseRelation = Relation(
       relType = Relation.RelType.Range(Range(start = Some(0L), end = 10L, step = 1L))
     )
-    val df = new DataFrame(mockSession, baseRelation)
+    val df = DataFrame(mockSession, baseRelation)
 
     val result = df.groupBy(functions.col("id"))
 
@@ -107,7 +107,7 @@ class DataFrameSpec extends AnyFlatSpec with Matchers with MockitoSugar:
     val baseRelation = Relation(
       relType = Relation.RelType.Range(Range(start = Some(0L), end = 10L, step = 1L))
     )
-    val df = new DataFrame(mockSession, baseRelation)
+    val df = DataFrame(mockSession, baseRelation)
 
     val result = df.sort(functions.col("id").desc)
 
@@ -126,7 +126,7 @@ class DataFrameSpec extends AnyFlatSpec with Matchers with MockitoSugar:
     val baseRelation = Relation(
       relType = Relation.RelType.Range(Range(start = Some(0L), end = 10L, step = 1L))
     )
-    val df = new DataFrame(mockSession, baseRelation)
+    val df = DataFrame(mockSession, baseRelation)
 
     val result = df.orderBy(functions.col("id").asc)
 
@@ -144,7 +144,7 @@ class DataFrameSpec extends AnyFlatSpec with Matchers with MockitoSugar:
     val baseRelation = Relation(
       relType = Relation.RelType.Range(Range(start = Some(0L), end = 10L, step = 1L))
     )
-    val df = new DataFrame(mockSession, baseRelation)
+    val df = DataFrame(mockSession, baseRelation)
 
     val result = df.limit(5)
 
@@ -163,7 +163,7 @@ class DataFrameSpec extends AnyFlatSpec with Matchers with MockitoSugar:
     val baseRelation = Relation(
       relType = Relation.RelType.Range(Range(start = Some(0L), end = 10L, step = 1L))
     )
-    val df = new DataFrame(mockSession, baseRelation)
+    val df = DataFrame(mockSession, baseRelation)
 
     val result = df.withColumn("doubled", functions.col("id") * 2)
 
@@ -183,7 +183,7 @@ class DataFrameSpec extends AnyFlatSpec with Matchers with MockitoSugar:
     val baseRelation = Relation(
       relType = Relation.RelType.Range(Range(start = Some(0L), end = 10L, step = 1L))
     )
-    val df = new DataFrame(mockSession, baseRelation)
+    val df = DataFrame(mockSession, baseRelation)
 
     val result = df.withColumnRenamed("id", "identifier")
 
@@ -202,7 +202,7 @@ class DataFrameSpec extends AnyFlatSpec with Matchers with MockitoSugar:
     val baseRelation = Relation(
       relType = Relation.RelType.Range(Range(start = Some(0L), end = 10L, step = 1L))
     )
-    val df = new DataFrame(mockSession, baseRelation)
+    val df = DataFrame(mockSession, baseRelation)
 
     val result = df.drop("id")
 
@@ -221,7 +221,7 @@ class DataFrameSpec extends AnyFlatSpec with Matchers with MockitoSugar:
     val baseRelation = Relation(
       relType = Relation.RelType.Range(Range(start = Some(0L), end = 10L, step = 1L))
     )
-    val df = new DataFrame(mockSession, baseRelation)
+    val df = DataFrame(mockSession, baseRelation)
 
     val result = df.distinct()
 
@@ -239,7 +239,7 @@ class DataFrameSpec extends AnyFlatSpec with Matchers with MockitoSugar:
     val baseRelation = Relation(
       relType = Relation.RelType.Range(Range(start = Some(0L), end = 10L, step = 1L))
     )
-    val df = new DataFrame(mockSession, baseRelation)
+    val df = DataFrame(mockSession, baseRelation)
 
     val result = df.dropDuplicates("id", "name")
 
@@ -263,8 +263,8 @@ class DataFrameSpec extends AnyFlatSpec with Matchers with MockitoSugar:
       relType = Relation.RelType.Range(Range(start = Some(5L), end = 15L, step = 1L))
     )
 
-    val leftDf = new DataFrame(mockSession, leftRelation)
-    val rightDf = new DataFrame(mockSession, rightRelation)
+    val leftDf = DataFrame(mockSession, leftRelation)
+    val rightDf = DataFrame(mockSession, rightRelation)
 
     val result = leftDf.join(rightDf, functions.col("id") === functions.col("id"), "inner")
 
@@ -289,8 +289,8 @@ class DataFrameSpec extends AnyFlatSpec with Matchers with MockitoSugar:
       relType = Relation.RelType.Range(Range(start = Some(0L), end = 3L, step = 1L))
     )
 
-    val leftDf = new DataFrame(mockSession, leftRelation)
-    val rightDf = new DataFrame(mockSession, rightRelation)
+    val leftDf = DataFrame(mockSession, leftRelation)
+    val rightDf = DataFrame(mockSession, rightRelation)
 
     val result = leftDf.crossJoin(rightDf)
 
@@ -314,8 +314,8 @@ class DataFrameSpec extends AnyFlatSpec with Matchers with MockitoSugar:
       relType = Relation.RelType.Range(Range(start = Some(5L), end = 10L, step = 1L))
     )
 
-    val df1 = new DataFrame(mockSession, relation1)
-    val df2 = new DataFrame(mockSession, relation2)
+    val df1 = DataFrame(mockSession, relation1)
+    val df2 = DataFrame(mockSession, relation2)
 
     val result = df1.union(df2)
 
@@ -339,8 +339,8 @@ class DataFrameSpec extends AnyFlatSpec with Matchers with MockitoSugar:
       relType = Relation.RelType.Range(Range(start = Some(5L), end = 15L, step = 1L))
     )
 
-    val df1 = new DataFrame(mockSession, relation1)
-    val df2 = new DataFrame(mockSession, relation2)
+    val df1 = DataFrame(mockSession, relation1)
+    val df2 = DataFrame(mockSession, relation2)
 
     val result = df1.intersect(df2)
 
@@ -362,8 +362,8 @@ class DataFrameSpec extends AnyFlatSpec with Matchers with MockitoSugar:
       relType = Relation.RelType.Range(Range(start = Some(5L), end = 15L, step = 1L))
     )
 
-    val df1 = new DataFrame(mockSession, relation1)
-    val df2 = new DataFrame(mockSession, relation2)
+    val df1 = DataFrame(mockSession, relation1)
+    val df2 = DataFrame(mockSession, relation2)
 
     val result = df1.except(df2)
 
@@ -381,7 +381,7 @@ class DataFrameSpec extends AnyFlatSpec with Matchers with MockitoSugar:
     val baseRelation = Relation(
       relType = Relation.RelType.Range(Range(start = Some(0L), end = 100L, step = 1L))
     )
-    val df = new DataFrame(mockSession, baseRelation)
+    val df = DataFrame(mockSession, baseRelation)
 
     // Chain multiple operations
     val result = df

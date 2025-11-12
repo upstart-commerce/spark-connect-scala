@@ -50,7 +50,7 @@ class SparkSessionIntegrationSpec
         version should not be empty
         version should include(".")
       }
-    }.asserting(identity)
+    }.asserting(_ => succeed)
   }
 
   "SparkSession.range" should "create a DataFrame with range values" taggedAs Slow in {
@@ -62,7 +62,7 @@ class SparkSessionIntegrationSpec
         rows.length shouldBe 10
         rows.head.getLong(0) shouldBe 0L
         rows.last.getLong(0) shouldBe 9L
-    }.asserting(identity)
+    }.asserting(_ => succeed)
   }
 
   "DataFrame.filter" should "filter rows correctly" taggedAs Slow in {
@@ -93,7 +93,7 @@ class SparkSessionIntegrationSpec
           val doubled = row.getLong(1)
           doubled shouldBe id * 2
         }
-    }.asserting(identity)
+    }.asserting(_ => succeed)
   }
 
   "DataFrame.groupBy" should "aggregate data correctly" taggedAs Slow in {
@@ -109,7 +109,7 @@ class SparkSessionIntegrationSpec
         rows.foreach { row =>
           row.getLong(1) shouldBe 4L
         }
-    }.asserting(identity)
+    }.asserting(_ => succeed)
   }
 
   "DataFrame.orderBy" should "sort rows correctly" taggedAs Slow in {
@@ -126,7 +126,7 @@ class SparkSessionIntegrationSpec
         rows.sliding(2).foreach { case Seq(a, b) =>
           a.getLong(0) should be >= b.getLong(0)
         }
-    }.asserting(identity)
+    }.asserting(_ => succeed)
   }
 
   "DataFrame.limit" should "limit number of rows" taggedAs Slow in {
@@ -137,7 +137,7 @@ class SparkSessionIntegrationSpec
         rows <- limited.collect()
       yield
         rows.length shouldBe 5
-    }.asserting(identity)
+    }.asserting(_ => succeed)
   }
 
   "DataFrame.withColumn" should "add computed column" taggedAs Slow in {
@@ -153,7 +153,7 @@ class SparkSessionIntegrationSpec
           val squared = row.getLong(1)
           squared shouldBe id * id
         }
-    }.asserting(identity)
+    }.asserting(_ => succeed)
   }
 
   "DataFrame.join" should "join two DataFrames" taggedAs Slow in {
@@ -174,7 +174,7 @@ class SparkSessionIntegrationSpec
         rows.foreach { row =>
           row.getLong(0) shouldBe row.getLong(1)
         }
-    }.asserting(identity)
+    }.asserting(_ => succeed)
   }
 
   "DataFrame.union" should "combine two DataFrames" taggedAs Slow in {
@@ -188,7 +188,7 @@ class SparkSessionIntegrationSpec
         rows.length shouldBe 10
         rows.head.getLong(0) shouldBe 0L
         rows.last.getLong(0) shouldBe 9L
-    }.asserting(identity)
+    }.asserting(_ => succeed)
   }
 
   "SparkSession.sql" should "execute SQL query" taggedAs Slow in {
@@ -203,7 +203,7 @@ class SparkSessionIntegrationSpec
           val doubled = row.getLong(1)
           doubled shouldBe id * 2
         }
-    }.asserting(identity)
+    }.asserting(_ => succeed)
   }
 
   "Complex DataFrame operations" should "work correctly" taggedAs Slow in {
@@ -234,7 +234,7 @@ class SparkSessionIntegrationSpec
           squared shouldBe id * id
           id % 2 shouldBe 0
         }
-    }.asserting(identity)
+    }.asserting(_ => succeed)
   }
 
   "DataFrame.count" should "count rows correctly" taggedAs Slow in {
@@ -244,7 +244,7 @@ class SparkSessionIntegrationSpec
         count <- df.count()
       yield
         count shouldBe 42L
-    }.asserting(identity)
+    }.asserting(_ => succeed)
   }
 
   "DataFrame.first" should "return first row" taggedAs Slow in {
@@ -254,7 +254,7 @@ class SparkSessionIntegrationSpec
         first <- df.first()
       yield
         first.getLong(0) shouldBe 0L
-    }.asserting(identity)
+    }.asserting(_ => succeed)
   }
 
   "DataFrame.head" should "return first n rows" taggedAs Slow in {
@@ -267,7 +267,7 @@ class SparkSessionIntegrationSpec
         rows(0).getLong(0) shouldBe 0L
         rows(1).getLong(0) shouldBe 1L
         rows(2).getLong(0) shouldBe 2L
-    }.asserting(identity)
+    }.asserting(_ => succeed)
   }
 
   "DataFrame.take" should "return first n rows" taggedAs Slow in {
@@ -277,5 +277,5 @@ class SparkSessionIntegrationSpec
         rows <- df.take(7)
       yield
         rows.length shouldBe 7
-    }.asserting(identity)
+    }.asserting(_ => succeed)
   }

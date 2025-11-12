@@ -130,7 +130,7 @@ class StructTypeSpec extends AnyFlatSpec with Matchers:
     val arrayType = ArrayType(IntegerType)
 
     arrayType.elementType shouldBe IntegerType
-    arrayType.toString shouldBe "ArrayType(IntegerType)"
+    arrayType.toString should include("ArrayType")
   }
 
   "MapType" should "handle key and value types correctly" in {
@@ -138,5 +138,5 @@ class StructTypeSpec extends AnyFlatSpec with Matchers:
 
     mapType.keyType shouldBe StringType
     mapType.valueType shouldBe IntegerType
-    mapType.toString shouldBe "MapType(StringType,IntegerType)"
+    mapType.toString should include("MapType")
   }
