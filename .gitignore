@@ -1,0 +1,26 @@
+# sbt specific
+.cache
+.history
+.lib/
+dist/*
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+
+# Scala-IDE specific
+.scala_dependencies
+.worksheet
+.idea
+*.iml
+.bsp
+
+# Mac
+.DS_Store
+
+# Protobuf generated files (optional, can be committed if desired)
+# src/main/scala/org/apache/spark/sql/connect/proto/
+
+# Logs
+*.log

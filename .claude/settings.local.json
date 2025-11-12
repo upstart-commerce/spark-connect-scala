@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(sbt compile:*)",
+      "Bash(sbt clean compile:*)",
+      "Bash(nc:*)",
+      "Bash(sbt:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
