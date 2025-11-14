@@ -284,6 +284,44 @@ final class Column private[sql] (private[sql] val expr: Expression):
   def rlike(pattern: String): Column =
     binaryOp("rlike", functions.lit(pattern))
 
+  /**
+   * SQL IN predicate. Check if value is in a list of values.
+   */
+  def isin(values: Any*): Column =
+    Column(Expression(
+      exprType = Expression.ExprType.UnresolvedFunction(
+        Expression.UnresolvedFunction(
+          functionName = "in",
+          arguments = expr +: values.map(v => functions.lit(v).expr)
+        )
+      )
+    ))
+
+  /**
+   * SQL BETWEEN predicate. Check if value is between lower and upper bounds (inclusive).
+   */
+  def between(lowerBound: Any, upperBound: Any): Column =
+    (this >= lowerBound) && (this <= upperBound)
+
+  /**
+   * Substring operation.
+   */
+  def substr(startPos: Int, length: Int): Column =
+    Column(Expression(
+      exprType = Expression.ExprType.UnresolvedFunction(
+        Expression.UnresolvedFunction(
+          functionName = "substring",
+          arguments = Seq(expr, functions.lit(startPos).expr, functions.lit(length).expr)
+        )
+      )
+    ))
+
+  /**
+   * Substring operation (alias).
+   */
+  def substring(startPos: Int, length: Int): Column =
+    substr(startPos, length)
+
   // ============================================================================
   // Sorting
   // ============================================================================

@@ -112,6 +112,101 @@ final class DataFrame private (
     groupBy(colNames.map(Column(_))*)
 
   /**
+   * Create a multi-dimensional rollup for the specified columns.
+   *
+   * @param cols the columns to rollup
+   * @return a GroupedData for aggregation operations
+   */
+  def rollup(cols: Column*): GroupedData =
+    GroupedData(this, cols.toSeq, GroupedData.GroupType.Rollup)
+
+  /**
+   * Create a multi-dimensional rollup for the specified column names.
+   *
+   * @param colNames the column names to rollup
+   * @return a GroupedData for aggregation operations
+   */
+  @scala.annotation.targetName("rollupName")
+  def rollup(colNames: String*): GroupedData =
+    rollup(colNames.map(Column(_))*)
+
+  /**
+   * Create a multi-dimensional cube for the specified columns.
+   *
+   * @param cols the columns to cube
+   * @return a GroupedData for aggregation operations
+   */
+  def cube(cols: Column*): GroupedData =
+    GroupedData(this, cols.toSeq, GroupedData.GroupType.Cube)
+
+  /**
+   * Create a multi-dimensional cube for the specified column names.
+   *
+   * @param colNames the column names to cube
+   * @return a GroupedData for aggregation operations
+   */
+  @scala.annotation.targetName("cubeName")
+  def cube(colNames: String*): GroupedData =
+    cube(colNames.map(Column(_))*)
+
+  /**
+   * Unpivot a DataFrame from wide format to long format.
+   *
+   * @param ids ID columns that will remain unchanged
+   * @param values value columns to unpivot
+   * @param variableColumnName name of the variable column
+   * @param valueColumnName name of the value column
+   * @return unpivoted DataFrame
+   */
+  def unpivot(
+      ids: Array[Column],
+      values: Array[Column],
+      variableColumnName: String,
+      valueColumnName: String
+  ): DataFrame =
+    val unpivotRelation = Relation(
+      common = Some(RelationCommon(planId = Some(newPlanId()))),
+      relType = Relation.RelType.Unpivot(
+        Unpivot(
+          input = Some(relation),
+          ids = ids.map(_.expr).toSeq,
+          values = Some(Unpivot.Values(values = values.map(_.expr).toSeq)),
+          variableColumnName = variableColumnName,
+          valueColumnName = valueColumnName
+        )
+      )
+    )
+    DataFrame(session, unpivotRelation)
+
+  /**
+   * Unpivot a DataFrame from wide format to long format.
+   * All non-ID columns will be unpivoted.
+   *
+   * @param ids ID columns that will remain unchanged
+   * @param variableColumnName name of the variable column
+   * @param valueColumnName name of the value column
+   * @return unpivoted DataFrame
+   */
+  def unpivot(
+      ids: Array[Column],
+      variableColumnName: String,
+      valueColumnName: String
+  ): DataFrame =
+    val unpivotRelation = Relation(
+      common = Some(RelationCommon(planId = Some(newPlanId()))),
+      relType = Relation.RelType.Unpivot(
+        Unpivot(
+          input = Some(relation),
+          ids = ids.map(_.expr).toSeq,
+          values = None,
+          variableColumnName = variableColumnName,
+          valueColumnName = valueColumnName
+        )
+      )
+    )
+    DataFrame(session, unpivotRelation)
+
+  /**
    * Sort the DataFrame by the specified columns.
    *
    * @param cols the columns to sort by
@@ -454,12 +549,24 @@ final class DataFrame private (
     )
     client.analyzePlan(plan).map { response =>
       response.result match
-        case AnalyzePlanResponse.Result.Schema(schema) =>
-          // TODO: Convert proto DataType to StructType
-          StructType(Seq.empty) // Placeholder
+        case AnalyzePlanResponse.Result.Schema(schemaResult) =>
+          schemaResult.schema match
+            case Some(protoDataType) =>
+              DataTypeConverter.fromProto(protoDataType) match
+                case st: StructType => st
+                case _ => StructType(Seq.empty) // Fallback if not a struct
+            case None => StructType(Seq.empty)
         case _ =>
           StructType(Seq.empty)
     }
+
+  /**
+   * Get the column names of the DataFrame.
+   *
+   * @return array of column names
+   */
+  def columns: IO[Array[String]] =
+    schema.map(_.fields.map(_.name).toArray)
 
   /**
    * Explain the physical plan.
@@ -468,7 +575,225 @@ final class DataFrame private (
    * @return an IO effect
    */
   def explain(extended: Boolean = false): IO[Unit] =
-    IO.println("Explain not yet implemented")
+    // For now, just print a placeholder
+    // TODO: Implement proper explain using analyzePlan
+    IO.println(s"DataFrame explain (extended=$extended) - not yet fully implemented")
+
+  /**
+   * Repartition the DataFrame to the specified number of partitions.
+   *
+   * @param numPartitions the target number of partitions
+   * @return a new DataFrame with the specified number of partitions
+   */
+  def repartition(numPartitions: Int): DataFrame =
+    val repartitionRelation = Relation(
+      common = Some(RelationCommon(planId = Some(newPlanId()))),
+      relType = Relation.RelType.Repartition(
+        Repartition(
+          input = Some(relation),
+          numPartitions = numPartitions,
+          shuffle = Some(true)
+        )
+      )
+    )
+    DataFrame(session, repartitionRelation)
+
+  /**
+   * Repartition the DataFrame by the specified columns.
+   *
+   * @param cols the columns to repartition by
+   * @return a new DataFrame repartitioned by the columns
+   */
+  def repartition(cols: Column*): DataFrame =
+    val repartitionRelation = Relation(
+      common = Some(RelationCommon(planId = Some(newPlanId()))),
+      relType = Relation.RelType.RepartitionByExpression(
+        RepartitionByExpression(
+          input = Some(relation),
+          partitionExprs = cols.map(_.expr).toSeq
+        )
+      )
+    )
+    DataFrame(session, repartitionRelation)
+
+  /**
+   * Repartition the DataFrame by columns with a target number of partitions.
+   *
+   * @param numPartitions the target number of partitions
+   * @param cols the columns to repartition by
+   * @return a new DataFrame
+   */
+  def repartition(numPartitions: Int, cols: Column*): DataFrame =
+    val repartitionRelation = Relation(
+      common = Some(RelationCommon(planId = Some(newPlanId()))),
+      relType = Relation.RelType.RepartitionByExpression(
+        RepartitionByExpression(
+          input = Some(relation),
+          numPartitions = Some(numPartitions),
+          partitionExprs = cols.map(_.expr).toSeq
+        )
+      )
+    )
+    DataFrame(session, repartitionRelation)
+
+  /**
+   * Coalesce the DataFrame to the specified number of partitions.
+   * This is a narrow operation that does not trigger a shuffle.
+   *
+   * @param numPartitions the target number of partitions
+   * @return a new DataFrame with the specified number of partitions
+   */
+  def coalesce(numPartitions: Int): DataFrame =
+    val repartitionRelation = Relation(
+      common = Some(RelationCommon(planId = Some(newPlanId()))),
+      relType = Relation.RelType.Repartition(
+        Repartition(
+          input = Some(relation),
+          numPartitions = numPartitions,
+          shuffle = Some(false)  // No shuffle for coalesce
+        )
+      )
+    )
+    DataFrame(session, repartitionRelation)
+
+  /**
+   * Generate summary statistics for the DataFrame.
+   *
+   * @param cols the columns to describe
+   * @return a DataFrame with summary statistics
+   */
+  def describe(cols: String*): DataFrame =
+    val describeRelation = Relation(
+      common = Some(RelationCommon(planId = Some(newPlanId()))),
+      relType = Relation.RelType.Describe(
+        StatDescribe(
+          input = Some(relation),
+          cols = cols.toSeq
+        )
+      )
+    )
+    DataFrame(session, describeRelation)
+
+  /**
+   * Generate custom summary statistics.
+   *
+   * @param statistics the statistics to compute (e.g., "count", "mean", "stddev")
+   * @return a DataFrame with summary statistics
+   */
+  def summary(statistics: String*): DataFrame =
+    val summaryRelation = Relation(
+      common = Some(RelationCommon(planId = Some(newPlanId()))),
+      relType = Relation.RelType.Summary(
+        StatSummary(
+          input = Some(relation),
+          statistics = statistics.toSeq
+        )
+      )
+    )
+    DataFrame(session, summaryRelation)
+
+  /**
+   * Sample a fraction of rows.
+   *
+   * @param withReplacement whether to sample with replacement
+   * @param fraction the fraction of rows to return
+   * @param seed the random seed
+   * @return a new DataFrame with sampled rows
+   */
+  def sample(withReplacement: Boolean, fraction: Double, seed: Long = 0L): DataFrame =
+    val sampleRelation = Relation(
+      common = Some(RelationCommon(planId = Some(newPlanId()))),
+      relType = Relation.RelType.Sample(
+        Sample(
+          input = Some(relation),
+          lowerBound = 0.0,
+          upperBound = fraction,
+          withReplacement = Some(withReplacement),
+          seed = Some(seed)
+        )
+      )
+    )
+    DataFrame(session, sampleRelation)
+
+  /**
+   * Sample a fraction of rows (without replacement).
+   *
+   * @param fraction the fraction of rows to return
+   * @return a new DataFrame with sampled rows
+   */
+  def sample(fraction: Double): DataFrame =
+    sample(withReplacement = false, fraction)
+
+  /**
+   * Randomly split the DataFrame into multiple DataFrames.
+   *
+   * @param weights the weights for each split
+   * @param seed the random seed
+   * @return an array of DataFrames
+   */
+  def randomSplit(weights: Array[Double], seed: Long = 0L): Array[DataFrame] =
+    val sum = weights.sum
+    val normalizedWeights = weights.map(_ / sum)
+    val cumulative = normalizedWeights.scanLeft(0.0)(_ + _).toSeq
+
+    cumulative.sliding(2).map { case Seq(lower, upper) =>
+      val sampleRelation = Relation(
+        common = Some(RelationCommon(planId = Some(newPlanId()))),
+        relType = Relation.RelType.Sample(
+          Sample(
+            input = Some(relation),
+            lowerBound = lower,
+            upperBound = upper,
+            withReplacement = Some(false),
+            seed = Some(seed)
+          )
+        )
+      )
+      DataFrame(session, sampleRelation)
+    }.toArray
+
+  /**
+   * Cache the DataFrame in memory.
+   *
+   * @return this DataFrame
+   */
+  def cache(): DataFrame =
+    persist()
+
+  /**
+   * Persist the DataFrame with the default storage level.
+   *
+   * @return this DataFrame
+   */
+  def persist(): DataFrame =
+    // TODO: Implement persist via Catalog API
+    this
+
+  /**
+   * Unpersist the DataFrame.
+   *
+   * @param blocking whether to block until unpersist completes
+   * @return this DataFrame
+   */
+  def unpersist(blocking: Boolean = false): DataFrame =
+    // TODO: Implement unpersist via Catalog API
+    this
+
+  /**
+   * Get access to DataFrameNaFunctions for handling null/NaN values.
+   *
+   * @return DataFrameNaFunctions
+   */
+  def na: DataFrameNaFunctions =
+    DataFrameNaFunctions(this)
+
+  /**
+   * Get access to DataFrameStatFunctions for statistical operations.
+   *
+   * @return DataFrameStatFunctions
+   */
+  def stat: DataFrameStatFunctions =
+    DataFrameStatFunctions(this)
 
   /**
    * Get a DataFrameWriter for writing this DataFrame.

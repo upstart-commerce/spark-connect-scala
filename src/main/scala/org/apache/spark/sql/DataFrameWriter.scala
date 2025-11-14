@@ -143,8 +143,11 @@ final class DataFrameWriter private[sql] (
    * @return an IO effect
    */
   def save(pathOption: Option[String] = None): IO[Unit] =
-    IO.println("Write operation not yet fully implemented") *>
-    IO.unit // Placeholder
+    executeWriteOperation { writeOp =>
+      pathOption match
+        case Some(p) => writeOp.copy(saveType = WriteOperation.SaveType.Path(p))
+        case None => writeOp
+    }
 
   /**
    * Save the DataFrame in Parquet format.
@@ -198,8 +201,71 @@ final class DataFrameWriter private[sql] (
    * @return an IO effect
    */
   def saveAsTable(tableName: String): IO[Unit] =
-    IO.println(s"Saving as table: $tableName") *>
-    IO.unit // Placeholder
+    executeWriteOperation { writeOp =>
+      writeOp.copy(
+        saveType = WriteOperation.SaveType.Table(
+          WriteOperation.SaveTable(
+            tableName = tableName,
+            saveMethod = WriteOperation.SaveTable.TableSaveMethod.TABLE_SAVE_METHOD_SAVE_AS_TABLE
+          )
+        )
+      )
+    }
+
+  /**
+   * Insert the DataFrame into an existing table.
+   *
+   * @param tableName the table name
+   * @return an IO effect
+   */
+  def insertInto(tableName: String): IO[Unit] =
+    executeWriteOperation { writeOp =>
+      writeOp.copy(
+        saveType = WriteOperation.SaveType.Table(
+          WriteOperation.SaveTable(
+            tableName = tableName,
+            saveMethod = WriteOperation.SaveTable.TableSaveMethod.TABLE_SAVE_METHOD_INSERT_INTO
+          )
+        )
+      )
+    }
+
+  /**
+   * Execute a write operation with the configured settings.
+   *
+   * @param f function to configure the WriteOperation builder
+   * @return an IO effect
+   */
+  private def executeWriteOperation(configureSaveType: WriteOperation => WriteOperation): IO[Unit] =
+    val saveModeProto = modeValue.getOrElse("error").toLowerCase match
+      case "append" => WriteOperation.SaveMode.SAVE_MODE_APPEND
+      case "overwrite" => WriteOperation.SaveMode.SAVE_MODE_OVERWRITE
+      case "ignore" => WriteOperation.SaveMode.SAVE_MODE_IGNORE
+      case "error" | "errorifexists" => WriteOperation.SaveMode.SAVE_MODE_ERROR_IF_EXISTS
+      case _ => WriteOperation.SaveMode.SAVE_MODE_ERROR_IF_EXISTS
+
+    val baseWriteOp = WriteOperation(
+      input = Some(dataFrame.relation),
+      source = formatValue,
+      mode = saveModeProto,
+      sortColumnNames = sortColumns,
+      partitioningColumns = partitionColumns,
+      bucketBy = numBuckets.map { n =>
+        WriteOperation.BucketBy(
+          numBuckets = n,
+          bucketColumnNames = bucketColumns
+        )
+      },
+      options = options.toMap
+    )
+
+    val writeOp = configureSaveType(baseWriteOp)
+
+    val command = Command(
+      commandType = Command.CommandType.WriteOperation(writeOp)
+    )
+
+    dataFrame.session.client.executeCommand(command)
 
 object DataFrameWriter:
   private[sql] def apply(dataFrame: DataFrame): DataFrameWriter =

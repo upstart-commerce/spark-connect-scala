@@ -67,5 +67,14 @@ lazy val root = (project in file("."))
     ),
 
     // Ensure protobuf files are included in the package
-    Compile / unmanagedResourceDirectories += baseDirectory.value / "src" / "main" / "protobuf"
+    Compile / unmanagedResourceDirectories += baseDirectory.value / "src" / "main" / "protobuf",
+
+    // JVM options for tests (required for Apache Arrow)
+    Test / javaOptions ++= Seq(
+      "--add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED"
+    ),
+    Test / fork := true,
+
+    // Coverage settings
+    coverageExcludedFiles := ".*MyExample.*;.*SimpleTest.*"
   )

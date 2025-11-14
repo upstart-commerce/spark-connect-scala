@@ -1,6 +1,7 @@
 package org.apache.spark.sql
 
 import org.apache.spark.connect.proto.relations.{Relation, RelationCommon, Aggregate}
+import org.apache.spark.connect.proto.expressions.Expression
 
 /**
  * A set of methods for aggregations on a DataFrame, created by groupBy or rollup or cube.
@@ -10,7 +11,8 @@ import org.apache.spark.connect.proto.relations.{Relation, RelationCommon, Aggre
 final class GroupedData private[sql] (
   private val df: DataFrame,
   private val groupingExprs: Seq[Column],
-  private val groupType: GroupedData.GroupType
+  private val groupType: GroupedData.GroupType,
+  private val pivotCol: Option[Aggregate.Pivot] = None
 ):
 
   /**
@@ -20,16 +22,16 @@ final class GroupedData private[sql] (
    * @return a new DataFrame with the aggregation result
    */
   def agg(exprs: Column*): DataFrame =
+    val aggregateBuilder = Aggregate(
+      input = Some(df.relation),
+      groupType = groupType.toProto,
+      groupingExpressions = groupingExprs.map(_.expr).toSeq,
+      aggregateExpressions = exprs.map(_.expr).toSeq,
+      pivot = pivotCol
+    )
     val relation = Relation(
       common = Some(RelationCommon(planId = Some(System.nanoTime()))),
-      relType = Relation.RelType.Aggregate(
-        Aggregate(
-          input = Some(df.relation),
-          groupType = groupType.toProto,
-          groupingExpressions = groupingExprs.map(_.expr).toSeq,
-          aggregateExpressions = exprs.map(_.expr).toSeq
-        )
-      )
+      relType = Relation.RelType.Aggregate(aggregateBuilder)
     )
     DataFrame(df.session, relation)
 
@@ -106,14 +108,94 @@ final class GroupedData private[sql] (
   def min(colNames: String*): DataFrame =
     agg(colNames.map(name => functions.min(Column(name)).as(s"min($name)"))*)
 
+  /**
+   * Pivots a column of the current DataFrame and performs the specified aggregation.
+   *
+   * This is only applicable for a GroupedData that was created by groupBy.
+   * The pivot column values will become new columns in the output.
+   *
+   * @param pivotColumn the name of the column to pivot
+   * @return a pivoted GroupedData
+   */
+  def pivot(pivotColumn: String): GroupedData =
+    pivot(Column(pivotColumn))
+
+  /**
+   * Pivots a column of the current DataFrame and performs the specified aggregation.
+   *
+   * This is only applicable for a GroupedData that was created by groupBy.
+   * The pivot column will only contain the specified values.
+   *
+   * @param pivotColumn the name of the column to pivot
+   * @param values list of values that will be translated to columns
+   * @return a pivoted GroupedData
+   */
+  def pivot(pivotColumn: String, values: Seq[Any]): GroupedData =
+    pivot(Column(pivotColumn), values)
+
+  /**
+   * Pivots a column of the current DataFrame and performs the specified aggregation.
+   *
+   * This is only applicable for a GroupedData that was created by groupBy.
+   * The pivot column values will become new columns in the output.
+   *
+   * @param pivotColumn the column to pivot
+   * @return a pivoted GroupedData
+   */
+  def pivot(pivotColumn: Column): GroupedData =
+    pivot(pivotColumn, Nil)
+
+  /**
+   * Pivots a column of the current DataFrame and performs the specified aggregation.
+   *
+   * This is only applicable for a GroupedData that was created by groupBy.
+   * The pivot column will only contain the specified values.
+   *
+   * @param pivotColumn the column to pivot
+   * @param values list of values that will be translated to columns
+   * @return a pivoted GroupedData
+   */
+  def pivot(pivotColumn: Column, values: Seq[Any]): GroupedData =
+    groupType match
+      case GroupedData.GroupType.GroupBy =>
+        val valueExprs = values.map {
+          case c: Column =>
+            // Extract literal from column if it's a literal
+            c.expr.exprType match
+              case Expression.ExprType.Literal(lit) => lit
+              case _ => throw new IllegalArgumentException("values only accept literal Column")
+          case v =>
+            // Convert to literal
+            val litCol = functions.lit(v)
+            litCol.expr.exprType match
+              case Expression.ExprType.Literal(lit) => lit
+              case _ => throw new IllegalArgumentException("Failed to convert value to literal")
+        }
+
+        val pivotBuilder = Aggregate.Pivot(
+          col = Some(pivotColumn.expr),
+          values = valueExprs
+        )
+
+        new GroupedData(
+          df,
+          groupingExprs,
+          GroupedData.GroupType.Pivot,
+          Some(pivotBuilder)
+        )
+      case _ =>
+        throw new UnsupportedOperationException("pivot is only supported after a groupBy")
+
 object GroupedData:
 
   enum GroupType:
     case GroupBy
     case Rollup
     case Cube
+    case Pivot
 
     def toProto: Aggregate.GroupType = this match
       case GroupBy => Aggregate.GroupType.GROUP_TYPE_GROUPBY
       case Rollup => Aggregate.GroupType.GROUP_TYPE_ROLLUP
       case Cube => Aggregate.GroupType.GROUP_TYPE_CUBE
+      case Pivot => Aggregate.GroupType.GROUP_TYPE_PIVOT

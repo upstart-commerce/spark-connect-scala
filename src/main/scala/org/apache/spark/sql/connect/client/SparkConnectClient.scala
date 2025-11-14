@@ -50,6 +50,27 @@ final class SparkConnectClient private (
     }
 
   /**
+   * Execute a command.
+   *
+   * @param command the command to execute
+   * @return an IO effect
+   */
+  def executeCommand(command: Command): IO[Unit] =
+    IO {
+      val plan = Plan(
+        opType = Plan.OpType.Command(command)
+      )
+      val request = ExecutePlanRequest(
+        sessionId = sessionId,
+        userContext = Some(UserContext(userId = userId)),
+        plan = Some(plan)
+      )
+      // Execute and consume all responses
+      stub.executePlan(request).foreach(_ => ())
+      ()
+    }
+
+  /**
    * Analyze a plan without executing it.
    *
    * @param plan the plan to analyze
